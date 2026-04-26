@@ -3,7 +3,7 @@ import { FolderSearch, Loader2 } from "lucide-react";
 
 export default function AnalyzerForm({ onAnalyze, loading }) {
   const [folderPath, setFolderPath] = useState(
-    "Enter fodler path"
+    ""
   );
 
   const handleSubmit = (event) => {
