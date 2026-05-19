@@ -61,7 +61,7 @@ export default function FolderParser() {
         return;
       }
 
-      const result = await buildLocalFolder(folderPath);
+      const result = await buildLocalFolder({ folderPath });
 
       setBuildResult(result);
       setScreen("build-result");

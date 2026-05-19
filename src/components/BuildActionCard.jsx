@@ -16,8 +16,8 @@ export default function BuildActionCard({
         <div>
           <h2>Ready to Build?</h2>
           <p>
-            Run a safe project build/check before moving to the next DevSure
-            workflow screen.
+            Run a safe project build/check first. After the build succeeds,
+            DevSure will unlock the testing flow for user rules analysis.
           </p>
           <span>{folderPath}</span>
         </div>
@@ -56,7 +56,7 @@ export default function BuildActionCard({
         ) : (
           <>
             <Rocket size={18} />
-            Build and Proceed
+            Build Project
           </>
         )}
       </button>
