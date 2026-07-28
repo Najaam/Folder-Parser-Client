@@ -1,4 +1,5 @@
 import { Code2, Sparkles } from "lucide-react";
+import "./Header.css";
 
 export default function Header() {
   return (

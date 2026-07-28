@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Route
 } from "lucide-react";
+import "./StatsCards.css";
 
 export default function StatsCards({ stats }) {
   const cards = [

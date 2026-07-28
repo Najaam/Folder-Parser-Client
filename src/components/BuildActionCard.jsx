@@ -1,4 +1,5 @@
 import { Hammer, Loader2, Rocket, AlertTriangle } from "lucide-react";
+import "./BuildActionCard.css";
 
 export default function BuildActionCard({
   folderPath,

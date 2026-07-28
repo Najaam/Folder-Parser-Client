@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   XCircle
 } from "lucide-react";
+import "./FolderTree.css";
 
 export default function FolderTree({ node, onSelectFile, selectedPath }) {
   if (!node) return null;
