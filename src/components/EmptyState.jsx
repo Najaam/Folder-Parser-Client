@@ -1,4 +1,5 @@
 import { FolderSearch } from "lucide-react";
+import "./EmptyState.css";
 
 export default function EmptyState() {
   return (

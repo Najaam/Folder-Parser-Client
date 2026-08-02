@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FolderSearch, Loader2 } from "lucide-react";
+import "./AnalyzerForm.css";
 
 export default function AnalyzerForm({ onAnalyze, loading }) {
   const [folderPath, setFolderPath] = useState(

@@ -21,6 +21,7 @@ import {
   Box,
   Settings
 } from "lucide-react";
+import "./FileDetails.css";
 
 export default function FileDetails({ file }) {
   if (!file) {

@@ -9,6 +9,7 @@ import BuildActionCard from "../components/BuildActionCard";
 import BuildResultPage from "./BuildResultPage";
 import { analyzeLocalFolder, buildLocalFolder } from "../api/analyzerApi";
 import { calculateTreeStats } from "../utils/treeStats";
+import "./FolderParser.css";
 
 export default function FolderParser() {
   const [analysisResult, setAnalysisResult] = useState(null);
