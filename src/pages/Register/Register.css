@@ -1,0 +1,11 @@
+/* Register uses all auth-* shared classes from Login.css */
+/* Only Register-specific tweaks below */
+
+.auth-submit-btn.register-btn {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed, #6366f1);
+  box-shadow: 0 4px 24px rgba(109, 40, 217, 0.45), 0 0 40px rgba(99, 102, 241, 0.15);
+}
+
+.auth-submit-btn.register-btn:hover {
+  box-shadow: 0 6px 28px rgba(109, 40, 217, 0.55), 0 0 50px rgba(99, 102, 241, 0.2);
+}

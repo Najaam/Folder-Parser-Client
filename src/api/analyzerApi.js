@@ -1,57 +1,33 @@
-const API_BASE_URL = "http://localhost:5000/api";
+import { authenticatedRequest } from "./authApi";
 
 export async function analyzeLocalFolder(folderPath) {
-  const response = await fetch(`${API_BASE_URL}/analyze/local-folder`, {
+  return authenticatedRequest("/analyze/local-folder", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ folderPath })
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Failed to analyze folder");
-  }
-
-  return data;
 }
 
 export async function buildLocalFolder({ folderPath }) {
-  const response = await fetch(`${API_BASE_URL}/build/local-folder`, {
+  return authenticatedRequest("/build/local-folder", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ folderPath })
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw data;
-  }
-
-  return data;
 }
 
 export async function startTesting({ folderPath, entryFile, userStory, moduleIndex }) {
-  const response = await fetch(`${API_BASE_URL}/testing/start`, {
+  return authenticatedRequest("/testing/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ folderPath, entryFile, userStory, moduleIndex })
   });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw data;
-  }
-
-  return data;
 }
 
 
@@ -62,7 +38,7 @@ export async function generateModuleFeatureFile({
   functions,
   apiFlows
 }) {
-  const response = await fetch(`${API_BASE_URL}/testing/feature-file`, {
+  const data = await authenticatedRequest("/testing/feature-file", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -75,17 +51,6 @@ export async function generateModuleFeatureFile({
       apiFlows
     })
   });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(
-      data.ollamaError ||
-      data.error ||
-      data.message ||
-      "Failed to generate feature file"
-    );
-  }
 
   return data;
 }
@@ -101,7 +66,7 @@ export async function generateFunctionTestCases({
   featureFile,
   language = "javascript"
 }) {
-  const response = await fetch(`${API_BASE_URL}/testing/generate`, {
+  const data = await authenticatedRequest("/testing/generate", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -117,17 +82,6 @@ export async function generateFunctionTestCases({
       language
     })
   });
-
-  const data = await response.json();
-
-if (!response.ok || !data.success) {
-  throw new Error(
-    data.ollamaError ||
-    data.error ||
-    data.message ||
-    "Failed to generate test cases"
-  );
-}
 
   return data;
 }
@@ -146,19 +100,11 @@ export async function executeModuleTestCases({
     payload.folderPath = folderPath;
   }
 
-  const response = await fetch(`${API_BASE_URL}/testing/execute-module`, {
+  return authenticatedRequest("/testing/execute-module", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
   });
-
-  const data = await response.json();
-
-  if (!response.ok || !data.success) {
-    throw new Error(data.message || "Failed to execute module tests");
-  }
-
-  return data;
 }

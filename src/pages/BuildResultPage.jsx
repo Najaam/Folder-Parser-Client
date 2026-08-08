@@ -38,6 +38,10 @@ const CATEGORY_META = {
 };
 
 const CATEGORY_ORDER = ["success", "error", "failure", "security", "edge", "other"];
+const ANSI_ESCAPE_PATTERN = new RegExp(
+  `${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`,
+  "g"
+);
 
 function getTestCategory(type = "") {
   const value = String(type).toLowerCase();
@@ -74,87 +78,7 @@ function groupTestCases(testCases = []) {
 }
 
 function cleanTerminalOutput(text = "") {
-  return text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "").trim();
-}
-
-function getExecutionOutput({
-  executingTests = false,
-  testExecutionError = null,
-  testExecutionResult = null,
-  moduleName = "Module"
-}) {
-  if (executingTests) {
-    return "Executing generated test cases...";
-  }
-
-  if (testExecutionError) {
-    return `Test Execution Failed\n\n${testExecutionError}`;
-  }
-
-  if (!testExecutionResult) {
-    return "No test execution yet.";
-  }
-
-  const rawOutput = cleanTerminalOutput(
-    `${testExecutionResult.output || ""}\n${testExecutionResult.errorOutput || ""}`
-  );
-
-  if (rawOutput.includes("spawn EINVAL")) {
-    return "Test runner could not start properly. Please make sure Jest is installed in the selected project.";
-  }
-
-  const failedTests = Number(
-    rawOutput.match(/Tests:\s.*?(\d+)\s+failed/i)?.[1] || 0
-  );
-
-  const passedTests = Number(
-    rawOutput.match(/Tests:\s.*?(\d+)\s+passed/i)?.[1] || 0
-  );
-
-  const totalTests = Number(
-    rawOutput.match(/Tests:\s.*?(\d+)\s+total/i)?.[1] || 0
-  );
-
-  const missingFunctions = [
-    ...new Set(
-      [...rawOutput.matchAll(/ReferenceError:\s+([a-zA-Z_$][\w$]*)\s+is not defined/g)]
-        .map((match) => match[1])
-    )
-  ];
-
-  const issues = [];
-
-  if (missingFunctions.length > 0) {
-    issues.push(`Generated test file is missing imports for: ${missingFunctions.join(", ")}.`);
-  }
-
-  if (rawOutput.includes("toThrowError is not a function")) {
-    issues.push("Some generated tests used unsupported Jest syntax: .toThrowError().");
-  }
-
-  if (rawOutput.includes("npm warn exec")) {
-    issues.push("Jest was not installed, so npm tried to run it temporarily.");
-  }
-
-  if (issues.length === 0 && failedTests > 0) {
-    issues.push("Some generated test cases failed during execution.");
-  }
-
-  if (totalTests > 0) {
-    return `${moduleName} Test Execution Summary
-
-Total Tests: ${totalTests}
-Passed: ${passedTests}
-Failed: ${failedTests}
-
-Main Issues:
-${issues.length > 0 ? issues.map((issue) => `- ${issue}`).join("\n") : "- No major issues found."}
-
-Suggested Fix:
-Generated tests need proper imports, mocks, or API-based testing setup.`;
-  }
-
-  return rawOutput || "Tests executed but no output was returned.";
+  return text.replace(ANSI_ESCAPE_PATTERN, "").trim();
 }
 
 
@@ -899,7 +823,6 @@ function FeatureFileReviewPanel({
   featureFileError,
   featureFileDraft,
   featureFileApproved,
-  featureFilePath,
   generatingTests,
   onChange,
   onApprove
@@ -996,13 +919,6 @@ function FeatureFileReviewPanel({
         )}
       </div>
 
-      {/* {featureFilePath && (
-        <div className="feature-file-path-card">
-          <span>Sandbox Feature File</span>
-          <code>{featureFilePath}</code>
-        </div>
-      )} */}
-
       <label className="feature-file-editor">
         <span>
           <PencilLine size={15} />
@@ -1039,7 +955,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
   const [featureFileError, setFeatureFileError] = useState(null);
   const [featureFileDraft, setFeatureFileDraft] = useState("");
   const [featureFileApproved, setFeatureFileApproved] = useState(false);
-  const [featureFilePath, setFeatureFilePath] = useState("");
   const [projectModuleReports, setProjectModuleReports] = useState([]);
   const [qualityDashboardOpen, setQualityDashboardOpen] = useState(false);
 
@@ -1087,7 +1002,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
     setFeatureFileError(null);
     setFeatureFileDraft("");
     setFeatureFileApproved(false);
-    setFeatureFilePath("");
   };
 
   const handleCancelModuleRules = () => {
@@ -1231,7 +1145,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
       setFeatureFileError(null);
       setFeatureFileDraft("");
       setFeatureFileApproved(false);
-      setFeatureFilePath("");
       setFunctionTestItems([]);
 
       const data = await generateModuleFeatureFile({
@@ -1243,7 +1156,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
       });
 
       setFeatureFileDraft(data.featureFile || "");
-      setFeatureFilePath(data.featureFilePath || "");
     } catch (error) {
       setFeatureFileError(error.message || "Unable to create feature file.");
     } finally {
@@ -1538,7 +1450,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
             featureFileError={featureFileError}
             featureFileDraft={featureFileDraft}
             featureFileApproved={featureFileApproved}
-            featureFilePath={featureFilePath}
             generatingTests={generatingTests}
             onChange={(value) => {
               setFeatureFileDraft(value);
