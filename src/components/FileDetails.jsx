@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FileCode2,
   CheckCircle2,
@@ -24,6 +25,7 @@ import {
 import "./FileDetails.css";
 
 export default function FileDetails({ file }) {
+  const [activeTab, setActiveTab] = useState("overview");
   if (!file) {
     return (
       <div className="details-card empty-details">
@@ -37,11 +39,29 @@ export default function FileDetails({ file }) {
   const parseResult = file.parseResult;
   const summary = parseResult?.summary;
 
-  return (
-    <div className="details-card">
+  if (parseResult?.reason === "Unsupported file type") {
+    return <div className="details-card" key={file.path}>
       <div className="details-header">
-        <div>
-          <h2>{file.name}</h2>
+        <div><h2>{file.name}</h2><p>{file.path}</p></div>
+        <span className="status-pill failed"><AlertTriangle size={15} /> Unsupported</span>
+      </div>
+      <div className="unsupported-file-state">
+        <div className="unsupported-file-icon"><AlertTriangle size={23} /></div>
+        <div><h3>Unsupported File</h3><p>{parseResult?.reason || "This file type is not supported for source-code parsing and analysis."}</p></div>
+      </div>
+      <DetailSection title="File Information"><div className="analysis-block">
+        <InfoRow label="File Type" value={file.extension?.replace(".", "").toUpperCase() || "Unknown"} />
+        <InfoRow label="Status" value="Unsupported" />
+        <InfoRow label="Reason" value={parseResult?.reason || parseResult?.error || "Not a supported source file"} />
+      </div></DetailSection>
+    </div>;
+  }
+
+  return (
+    <div className="details-card" key={file.path}>
+      <div className="details-header">
+        <div className="details-file-heading">
+          <div><FileCode2 size={20} className="details-file-icon" /><h2>{file.name}</h2></div>
           <p>{file.path}</p>
         </div>
 
@@ -50,20 +70,8 @@ export default function FileDetails({ file }) {
             <CheckCircle2 size={15} />
             Parsed
           </span>
-        ) : (
-          <span className="status-pill failed">
-            <AlertTriangle size={15} />
-            Not Parsed
-          </span>
-        )}
+        ) : null}
       </div>
-
-      {!parseResult?.parseSuccess && (
-        <div className="error-box">
-          <strong>Reason:</strong>{" "}
-          {parseResult?.reason || parseResult?.error || "Unknown error"}
-        </div>
-      )}
 
       {parseResult?.parseSuccess && parseResult?.fileType === "package-json" && (
         <PackageJsonDetails summary={summary} />
@@ -73,6 +81,11 @@ export default function FileDetails({ file }) {
         parseResult?.fileType !== "package-json" &&
         summary && (
           <>
+            <div className="detail-tabs" role="tablist" aria-label="File analysis details">
+              {["overview", "imports", "exports", "functions", "variables"].map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+            </div>
+            <div className="details-tab-content" key={`${file.path}-${activeTab}`}>
+            {activeTab === "overview" && <>
             <div className="summary-grid">
               <SmallSummary
                 icon={Download}
@@ -131,31 +144,15 @@ export default function FileDetails({ file }) {
               <ExportsDetails exportsData={summary.exports} />
             </DetailSection>
 
-            <DetailSection title="Functions & Dependencies">
-              <FunctionsDetails functionsData={summary.functions} />
-            </DetailSection>
-
-            <DetailSection title="Function Dependency Map">
-              <FunctionDependencyMap
-                dependencies={summary.functions?.dependencies || []}
-              />
-            </DetailSection>
-
-            <DetailSection title="Function Call Graph">
-              <CallGraph callGraph={summary.functions?.callGraph || {}} />
-            </DetailSection>
-
-            <DetailSection title="API Routes">
-              <ApiRoutes routes={summary.apiRoutes?.routes || []} />
-            </DetailSection>
-
-            <DetailSection title="Classes">
-              <ClassesDetails classes={summary.classes?.list || []} />
-            </DetailSection>
-
             <DetailSection title="Variables">
               <VariablesDetails variables={summary.variables?.list || []} />
             </DetailSection>
+            </>}
+            {activeTab === "imports" && <DetailSection title="Imported Modules"><ImportModules modules={summary.imports?.modules || []} /></DetailSection>}
+            {activeTab === "exports" && <DetailSection title="Exports"><ExportsDetails exportsData={summary.exports} /></DetailSection>}
+            {activeTab === "functions" && <><DetailSection title="Functions & Dependencies"><FunctionsDetails functionsData={summary.functions} /></DetailSection><DetailSection title="Function Dependency Map"><FunctionDependencyMap dependencies={summary.functions?.dependencies || []} /></DetailSection><DetailSection title="Function Call Graph"><CallGraph callGraph={summary.functions?.callGraph || {}} /></DetailSection><DetailSection title="API Routes"><ApiRoutes routes={summary.apiRoutes?.routes || []} /></DetailSection><DetailSection title="Classes"><ClassesDetails classes={summary.classes?.list || []} /></DetailSection></>}
+            {activeTab === "variables" && <DetailSection title="Variables"><VariablesDetails variables={summary.variables?.list || []} /></DetailSection>}
+            </div>
           </>
         )}
     </div>

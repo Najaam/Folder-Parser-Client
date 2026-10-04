@@ -1,13 +1,10 @@
-import { useState } from "react";
-import { KeyRound, LogOut, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import useAuth from "../../context/useAuth";
-import ChangePasswordModal from "../../components/ChangePasswordModal";
 import FolderParser from "../FolderParser";
 import "./Dashboard.css";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
-  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Get initials for avatar
   const initials = user?.name
@@ -21,7 +18,6 @@ export default function Dashboard() {
         <div className="dashboard-user">
           <div className="dashboard-avatar">{initials}</div>
           <div className="dashboard-user-info">
-            <p className="dashboard-greeting">Welcome Back</p>
             <h1 className="dashboard-name">{user?.name || "DevSure User"}</h1>
             <p className="dashboard-email">{user?.email}</p>
           </div>
@@ -29,16 +25,6 @@ export default function Dashboard() {
 
         {/* Actions */}
         <div className="dashboard-actions">
-          <button
-            type="button"
-            className="dashboard-change-password-btn"
-            onClick={() => setShowChangePassword(true)}
-            title="Change Password"
-          >
-            <KeyRound size={17} />
-            Change Password
-          </button>
-
           <button
             type="button"
             className="dashboard-logout-btn"
@@ -52,10 +38,6 @@ export default function Dashboard() {
       </header>
 
       <FolderParser />
-
-      {showChangePassword && (
-        <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
-      )}
     </main>
   );
 }

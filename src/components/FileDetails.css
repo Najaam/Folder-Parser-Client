@@ -346,6 +346,8 @@
   overflow: auto;
 }
 
+.details-card { animation: details-content-in .22s ease both; }.detail-tabs{display:flex;gap:25px;border-bottom:1px solid rgba(148,163,184,.14);margin-top:20px}.detail-tabs button{position:relative;border:0;background:transparent;color:#99a8c4;padding:0 0 12px;cursor:pointer;font:inherit;font-size:13px;transition:color .18s ease}.detail-tabs button::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#8985ff;transform:scaleX(0);transition:transform .18s ease}.detail-tabs button.active{color:#eef2ff}.detail-tabs button.active::after{transform:scaleX(1)}.details-tab-content{animation:details-content-in .2s ease both}@keyframes details-content-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}.small-summary{transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}.small-summary:hover{border-color:rgba(129,138,255,.33);background:rgba(21,41,78,.7);box-shadow:0 8px 20px rgba(0,0,0,.12)}.unsupported-file-state{display:flex;gap:14px;align-items:center;margin-top:18px;padding:18px;border:1px solid rgba(245,158,11,.16);border-radius:14px;background:rgba(120,83,14,.09)}.unsupported-file-state h3{margin:0;color:#f7d494;font-size:15px}.unsupported-file-state p{margin:6px 0 0;color:#bdc6d8;font-size:13px;line-height:1.5}.unsupported-file-icon{width:45px;height:45px;display:grid;place-items:center;border-radius:12px;background:rgba(245,158,11,.13);color:#f5b942;flex:0 0 auto}
+
 @media (max-width: 720px) {
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -603,3 +605,6 @@
     min-width: 0;
   }
 }
+@media (prefers-reduced-motion:reduce){.details-card,.details-tab-content{animation:none}.detail-tabs button,.detail-tabs button::after,.small-summary{transition:none}}
+
+.details-file-heading>div{display:flex;align-items:center;gap:9px}.details-file-heading h2{font-size:19px}.details-file-icon{color:#f4c326;background:rgba(172,129,10,.15);padding:2px;border-radius:4px}.details-card{padding:20px}.summary-grid{gap:10px}.small-summary{min-height:68px;border-radius:11px;background:rgba(14,31,60,.58)}.small-summary svg{color:#aaa8ff}.detail-tabs{gap:32px;margin-top:17px}.detail-tabs button{text-transform:capitalize}.status-pill{border-radius:9px}.status-pill.success{color:#5ce597;background:rgba(15,119,73,.19)}

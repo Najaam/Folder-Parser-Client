@@ -212,3 +212,7 @@
 }
 
 .otp-back-btn:hover { color: #64748b; }
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}

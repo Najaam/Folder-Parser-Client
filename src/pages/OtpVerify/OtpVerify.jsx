@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { resendOtp, verifyOtp } from "../../api/authApi";
+import ButtonSpinner from "../../components/ButtonSpinner";
 import "./OtpVerify.css";
 
 export default function OtpVerify({ email, onVerified, onBack }) {
@@ -116,7 +117,7 @@ export default function OtpVerify({ email, onVerified, onBack }) {
 
           <button type="submit" className="otp-submit" disabled={loading}>
             <ShieldCheck size={17} />
-            {loading ? "Verifying..." : "Verify Email"}
+            {loading ? <><ButtonSpinner /> Verifying...</> : "Verify Email"}
           </button>
         </form>
 
@@ -129,7 +130,7 @@ export default function OtpVerify({ email, onVerified, onBack }) {
               onClick={handleResend}
               disabled={resendLoading}
             >
-              {resendLoading ? "Sending..." : "Resend OTP"}
+              {resendLoading ? <><ButtonSpinner /> Sending...</> : "Resend OTP"}
             </button>
           </p>
           <button type="button" className="otp-back-btn" onClick={onBack}>

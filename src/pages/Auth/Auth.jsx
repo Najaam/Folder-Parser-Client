@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
 import { sendOtp } from "../../api/authApi";
 import useAuth from "../../context/useAuth";
+import ButtonSpinner from "../../components/ButtonSpinner";
 import "./Auth.css";
 
-export default function Auth({ onOtpSent, successMessage }) {
+export default function Auth({ onOtpSent, onForgotPassword, successMessage, onBackToLanding }) {
   const { login } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
 
   // Login state
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [loginData, setLoginData] = useState({ email: "", password: "", rememberMe: false });
   const [showLoginPass, setShowLoginPass] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
@@ -17,6 +18,8 @@ export default function Auth({ onOtpSent, successMessage }) {
   // Register state
   const [regData, setRegData] = useState({ name: "", email: "", password: "" });
   const [showRegPass, setShowRegPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
 
@@ -35,6 +38,13 @@ export default function Auth({ onOtpSent, successMessage }) {
 
   async function handleRegister(e) {
     e.preventDefault();
+
+    // Frontend validation — passwords must match
+    if (regData.password !== confirmPassword) {
+      setRegError("Passwords do not match.");
+      return;
+    }
+
     try {
       setRegLoading(true);
       setRegError("");
@@ -54,9 +64,28 @@ export default function Auth({ onOtpSent, successMessage }) {
         {/* ── Login Form — left side ── */}
         <div className="auth-left-side">
           <div className="auth-form-inner">
-            <div className="auth-brand-row">
-              <span className="auth-brand-dot" />
-              <span className="auth-brand-label">DevSure Analyzer</span>
+            <div className="auth-brand-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span className="auth-brand-dot" />
+                <span className="auth-brand-label">DevSure Analyzer</span>
+              </div>
+              {onBackToLanding && (
+                <button
+                  type="button"
+                  onClick={onBackToLanding}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#94a3b8",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                    borderRadius: "6px"
+                  }}
+                >
+                  ← Home
+                </button>
+              )}
             </div>
             <h1>Sign In</h1>
             <p className="auth-form-sub">Enter your credentials to continue.</p>
@@ -102,8 +131,25 @@ export default function Auth({ onOtpSent, successMessage }) {
                 </div>
               </div>
 
+              <div className="auth-remember-row">
+                <label className="auth-remember-label">
+                  <input
+                    type="checkbox"
+                    className="auth-remember-check"
+                    checked={loginData.rememberMe}
+                    onChange={(e) =>
+                      setLoginData((p) => ({ ...p, rememberMe: e.target.checked }))
+                    }
+                  />
+                  <span>Remember me for 3 days</span>
+                </label>
+                <button type="button" className="auth-forgot-btn" onClick={onForgotPassword}>
+                  Forgot password?
+                </button>
+              </div>
+
               <button type="submit" className="auth-submit" disabled={loginLoading}>
-                {loginLoading ? "Signing in..." : "Sign In"}
+                {loginLoading ? <><ButtonSpinner /> Signing in...</> : "Sign In"}
               </button>
             </form>
 
@@ -177,8 +223,30 @@ export default function Auth({ onOtpSent, successMessage }) {
                 </div>
               </div>
 
+              <div className="auth-field">
+                <label>Confirm Password</label>
+                <div className="auth-pass-wrap">
+                  <input
+                    type={showConfirmPass ? "text" : "password"}
+                    placeholder="Re-enter your password"
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="auth-eye"
+                    onClick={() => setShowConfirmPass((v) => !v)}
+                  >
+                    {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
               <button type="submit" className="auth-submit" disabled={regLoading}>
-                {regLoading ? "Sending OTP..." : "Continue"}
+                {regLoading ? <><ButtonSpinner /> Sending OTP...</> : "Continue"}
               </button>
             </form>
 

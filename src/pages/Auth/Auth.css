@@ -386,3 +386,57 @@
 
   .auth-switch-mobile { display: block; }
 }
+
+/* Forgot password link */
+.auth-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.auth-forgot-btn {
+  background: transparent;
+  border: none;
+  color: #7c6bdb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.auth-forgot-btn:hover { color: #a78bfa; }
+
+/* ── Remember Me row ─────────────────────────────────────── */
+.auth-remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.auth-remember-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-remember-check {
+  width: 15px;
+  height: 15px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+}
+
+.auth-remember-label:hover {
+  color: #94a3b8;
+}
+
+/* ── Button spinner ──────────────────────────────────────── */
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}

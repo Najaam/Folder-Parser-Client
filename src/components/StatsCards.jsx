@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Folder,
   FileCode2,
@@ -7,12 +8,12 @@ import {
   Download,
   Upload,
   Boxes,
-  AlertCircle,
   Route
 } from "lucide-react";
 import "./StatsCards.css";
 
 export default function StatsCards({ stats }) {
+  const [displayValues, setDisplayValues] = useState({});
   const cards = [
     {
       title: "Folders",
@@ -45,11 +46,6 @@ export default function StatsCards({ stats }) {
       icon: Download
     },
     {
-      title: "Unused Imports",
-      value: stats.unusedImportedItems,
-      icon: AlertCircle
-    },
-    {
       title: "Exports",
       value: stats.totalExports,
       icon: Upload
@@ -66,8 +62,22 @@ export default function StatsCards({ stats }) {
     }
   ];
 
+  useEffect(() => {
+    const target = Object.fromEntries(cards.map(({ title, value }) => [title, Number(value) || 0]));
+    const startedAt = performance.now();
+    let frameId;
+    const update = (now) => {
+      const progress = Math.min((now - startedAt) / 720, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValues(Object.fromEntries(Object.entries(target).map(([key, value]) => [key, Math.round(value * eased)])));
+      if (progress < 1) frameId = requestAnimationFrame(update);
+    };
+    frameId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frameId);
+  }, [stats]);
+
   return (
-    <section className="stats-grid">
+    <section className="stats-grid analyzer-enter metrics-enter">
       {cards.map((card) => {
         const Icon = card.icon;
 
@@ -79,7 +89,7 @@ export default function StatsCards({ stats }) {
 
             <div>
               <p>{card.title}</p>
-              <h3>{card.value}</h3>
+              <h3>{displayValues[card.title] ?? card.value}</h3>
             </div>
           </div>
         );

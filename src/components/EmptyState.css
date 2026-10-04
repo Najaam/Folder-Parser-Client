@@ -1,31 +1,37 @@
 .empty-state {
   text-align: center;
-  padding: 70px 20px;
-  background: rgba(15, 23, 42, 0.56);
-  border: 1px dashed rgba(148, 163, 184, 0.28);
-  border-radius: 28px;
+  padding: 73px 20px;
+  background: linear-gradient(135deg, rgba(13, 31, 59, .66), rgba(9, 25, 50, .7));
+  border: 1px dashed rgba(133, 160, 211, 0.36);
+  border-radius: 18px;
+  box-shadow: inset 0 1px rgba(255,255,255,.025);
 }
 
 .empty-icon {
-  width: 86px;
-  height: 86px;
-  margin: 0 auto 18px;
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 16px;
   display: grid;
   place-items: center;
-  border-radius: 26px;
-  background: rgba(99, 102, 241, 0.12);
-  color: #a5b4fc;
+  border-radius: 22px;
+  background: transparent;
+  color: #aebaff;
+  animation: empty-icon-breathe 3.5s ease-in-out infinite;
 }
+
+@keyframes empty-icon-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
 
 .empty-state h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 22px;
 }
+
+@media (prefers-reduced-motion: reduce) { .empty-icon { animation: none; } }
 
 .empty-state p {
   margin: 10px auto 0;
-  max-width: 560px;
-  color: #94a3b8;
+  max-width: 470px;
+  color: #aab8d2;
   line-height: 1.6;
 }
 

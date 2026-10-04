@@ -36,14 +36,14 @@ export async function registerUser({ name, email, password }) {
   return data;
 }
 
-export async function loginUser({ email, password }) {
+export async function loginUser({ email, password, rememberMe = false }) {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     credentials: "include",
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, rememberMe })
   });
 
   const data = await parseResponse(response);
@@ -164,7 +164,6 @@ export async function resendOtp({ email }) {
 
 /**
  * Changes the authenticated user's password.
- * Requires current password verification.
  */
 export function changePassword({ currentPassword, newPassword }) {
   return authenticatedRequest("/auth/change-password", {
@@ -172,6 +171,30 @@ export function changePassword({ currentPassword, newPassword }) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ currentPassword, newPassword })
   });
+}
+
+/**
+ * Sends a password reset OTP to the given email.
+ */
+export async function forgotPassword({ email }) {
+  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email })
+  });
+  return parseResponse(response);
+}
+
+/**
+ * Verifies OTP and sets a new password.
+ */
+export async function resetPassword({ email, code, newPassword }) {
+  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code, newPassword })
+  });
+  return parseResponse(response);
 }
 
 // ─── Session Management ───────────────────────────────────────────────────────
