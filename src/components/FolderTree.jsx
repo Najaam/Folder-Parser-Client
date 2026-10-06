@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -10,27 +10,55 @@ import {
   AlertTriangle,
   XCircle
 } from "lucide-react";
+import { Filter, RefreshCw, Search } from "lucide-react";
 import "./FolderTree.css";
 
-export default function FolderTree({ node, onSelectFile, selectedPath }) {
+export default function FolderTree({ node, onSelectFile, selectedPath, onRefresh, refreshing }) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filteredNode = useMemo(() => (node ? filterTree(node, query, filter) : null), [node, query, filter]);
   if (!node) return null;
 
   return (
     <div className="tree-root">
+      <div className="tree-search">
+        <Search size={16} />
+        <input aria-label="Search files and folders" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search files and folders..." />
+        <div className="tree-filter-wrap"><button type="button" className={`tree-tool-button ${filter !== "all" ? "active" : ""}`} onClick={() => setFilterOpen((value) => !value)} aria-label="Filter files"><Filter size={15} /></button>
+          {filterOpen && <div className="tree-filter-menu" role="menu">{["all", "parsed", "unsupported", "files", "folders"].map((option) => <button key={option} type="button" className={filter === option ? "active" : ""} onClick={() => { setFilter(option); setFilterOpen(false); }}>{option}</button>)}</div>}
+        </div>
+        <button type="button" className="tree-tool-button" disabled={refreshing} onClick={onRefresh} aria-label="Re-analyze project"><RefreshCw className={refreshing ? "spin" : ""} size={15} /></button>
+      </div>
+      {!filteredNode ? <p className="tree-no-results">No matching files or folders.</p> :
       <TreeNode
-        node={node}
+        node={filteredNode}
         level={0}
         onSelectFile={onSelectFile}
         selectedPath={selectedPath}
-      />
+        forceOpen={Boolean(query.trim())}
+      />}
     </div>
   );
 }
 
-function TreeNode({ node, level, onSelectFile, selectedPath }) {
+function filterTree(node, query, filter) {
+  const searchTerm = query.trim().toLowerCase();
+  const matchingChildren = (node.children || []).map((child) => filterTree(child, query, filter)).filter(Boolean);
+  const isFolder = node.type === "folder";
+  const parsed = node.parseResult?.parseSuccess === true;
+  const unsupported = node.parseResult?.reason === "Unsupported file type";
+  const matchesQuery = !searchTerm || node.name?.toLowerCase().includes(searchTerm);
+  const matchesFilter = filter === "all" || (filter === "folders" && isFolder) || (filter === "files" && !isFolder) || (filter === "parsed" && parsed) || (filter === "unsupported" && unsupported);
+  if ((isFolder && matchingChildren.length) || (matchesQuery && matchesFilter)) return { ...node, children: matchingChildren };
+  return null;
+}
+
+function TreeNode({ node, level, onSelectFile, selectedPath, forceOpen = false }) {
   const [open, setOpen] = useState(level < 2);
 
   const isFolder = node.type === "folder";
+  const expanded = forceOpen || open;
   const isSelected = selectedPath === node.path;
 
   const parseSuccess = node.parseResult?.parseSuccess;
@@ -48,14 +76,15 @@ function TreeNode({ node, level, onSelectFile, selectedPath }) {
 
   return (
     <div>
-      <div
+      <button
+        type="button"
         className={`tree-node ${isSelected ? "selected" : ""}`}
         style={{ paddingLeft: `${level * 18 + 10}px` }}
         onClick={handleClick}
       >
         <div className="tree-node-left">
           {isFolder ? (
-            open ? (
+            expanded ? (
               <ChevronDown size={16} />
             ) : (
               <ChevronRight size={16} />
@@ -65,7 +94,7 @@ function TreeNode({ node, level, onSelectFile, selectedPath }) {
           )}
 
           {isFolder ? (
-            open ? (
+            expanded ? (
               <FolderOpen size={18} className="folder-icon" />
             ) : (
               <Folder size={18} className="folder-icon" />
@@ -93,10 +122,10 @@ function TreeNode({ node, level, onSelectFile, selectedPath }) {
             {isUnsupported && <XCircle size={15} className="skip-icon" />}
           </div>
         )}
-      </div>
+      </button>
 
-      {isFolder && open && node.children?.length > 0 && (
-        <div>
+      {isFolder && expanded && node.children?.length > 0 && (
+        <div className="tree-children">
           {node.children.map((child, index) => (
             <TreeNode
               key={`${child.path}-${index}`}
@@ -104,6 +133,7 @@ function TreeNode({ node, level, onSelectFile, selectedPath }) {
               level={level + 1}
               onSelectFile={onSelectFile}
               selectedPath={selectedPath}
+              forceOpen={forceOpen}
             />
           ))}
         </div>

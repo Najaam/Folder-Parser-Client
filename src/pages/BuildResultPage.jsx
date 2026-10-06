@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  Check,
   Terminal,
   Folder,
   ArrowLeft,
@@ -14,10 +15,28 @@ import {
   AlertTriangle,
   CheckCheck,
   FunctionSquare,
+  Boxes,
   ArrowRight,
+  ChevronRight,
   FileText,
+  Code2,
+  ShieldCheck,
+  Sparkles,
   PencilLine,
-  X
+  X,
+  Maximize2,
+  Minimize2,
+  Download,
+  CircleCheckBig,
+  CircleX,
+  CalendarDays,
+  Clock3,
+  PieChart,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  Copy,
+  List
 } from "lucide-react";
 import "./BuildResultPage.css";
 
@@ -75,6 +94,88 @@ function groupTestCases(testCases = []) {
 
 function cleanTerminalOutput(text = "") {
   return text.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "").trim();
+}
+
+function ResizeControl({ expanded, onToggle, label }) {
+  return (
+    <button type="button" className="workspace-resize-button" onClick={onToggle} aria-label={`${expanded ? "Restore" : "Expand"} ${label}`} title={`${expanded ? "Restore" : "Expand"} ${label}`}>
+      {expanded ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+      <span>{expanded ? "Restore" : "Expand"}</span>
+    </button>
+  );
+}
+
+function renderFeatureFileLine(line) {
+  const keywordMatch = line.match(/^(\s*)(Feature:|Scenario Outline:|Scenario:)(.*)$/i);
+
+  if (!keywordMatch) return line || " ";
+
+  const [, indentation, keyword, remainder] = keywordMatch;
+  const isFeature = keyword.toLowerCase() === "feature:";
+  const parts = isFeature ? remainder.split(/(auth)/ig) : [remainder];
+  return <>{indentation}<span className="feature-keyword">{keyword}</span>{parts.map((part, index) => part.toLowerCase() === "auth" ? <span className="feature-module-name" key={index}>{part}</span> : <Fragment key={index}>{part}</Fragment>)}</>;
+}
+
+function highlightJestLine(line) {
+  const tokenStyles = {
+    keyword: { color: "#d99ade" },
+    string: { color: "#8ed67e" },
+    function: { color: "#72b9ea" },
+    method: { color: "#dfbd68" },
+    comment: { color: "#778599" }
+  };
+  const plainTokenStyle = { background: "transparent", border: 0, borderRadius: 0, padding: 0, boxShadow: "none", font: "inherit", fontWeight: "inherit", textTransform: "none", letterSpacing: "normal", display: "inline" };
+  const tokens = String(line || " ").split(/(\/\/.*$|`[^`]*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\b(?:test|const|let|var|async|await|expect|describe|it|return|new|true|false|null|undefined)\b|\b[A-Za-z_$][\w$]*(?=\s*\())/g);
+  return tokens.map((token, index) => {
+    let color = null;
+    if (/^\/\//.test(token)) color = tokenStyles.comment.color;
+    else if (/^(?:`|"|')/.test(token)) color = tokenStyles.string.color;
+    else if (/^(?:test|const|let|var|async|await|expect|describe|it|return|new|true|false|null|undefined)$/.test(token)) color = tokenStyles.keyword.color;
+    else if (/^(mockResolvedValue|mockReturnValue|toHaveBeenCalledWith|toHaveBeenCalled|toBe|toEqual|toBeUndefined|toContain|objectContaining)$/i.test(token)) color = tokenStyles.method.color;
+    else if (/^[A-Za-z_$][\w$]*$/.test(token)) color = tokenStyles.function.color;
+    return <span key={index} style={{ ...plainTokenStyle, ...(color ? { color } : {}) }}>{token}</span>;
+  });
+}
+
+function JestCodeViewer({ code, functionName, fileName }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const resolvedFileName = fileName || `${functionName || "generated"}.test.js`;
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className={`jest-code-dropdown ${open ? "is-open" : ""}`}>
+      <button type="button" className="jest-code-toggle" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        <ChevronDown size={13} /> {open ? "Hide Jest Code" : "View Jest Code"}
+      </button>
+      <div className="jest-code-reveal">
+        <div className="jest-code-viewer">
+          <header className="jest-code-header"><span>{resolvedFileName}</span><button type="button" className="jest-copy-button" onClick={copyCode} aria-label={copied ? "Copied" : "Copy code"}>{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? "Copied" : "Copy code"}</button></header>
+          <div className="jest-code-body"><ol>{code.split("\n").map((line, index) => <li key={index}><code>{highlightJestLine(line)}</code></li>)}</ol></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorReasonPanel({ error, fallbackTitle = "Operation Failed", compact = false }) {
+  if (!error) return null;
+  const details = typeof error === "string" ? { description: error } : error;
+  const fields = [
+    ["Error Title", details.title || fallbackTitle],
+    ["Error Description", details.description || details.message || "The operation could not be completed."],
+    ["Root Cause", details.rootCause || "The requested service could not complete the operation."],
+    ["Suggested Fix", details.suggestedFix || "Check your inputs and connection, then try again."],
+    ["Severity", details.severity || "Medium"]
+  ];
+  return <section className={`error-reason-panel ${compact ? "compact" : ""}`}>{fields.map(([label, value]) => <div key={label}><span>{label}</span><p>{value}</p></div>)}</section>;
 }
 
 function getExecutionOutput({
@@ -675,12 +776,7 @@ function getFailurePreview(test) {
   return (importantLines.length ? importantLines : lines).slice(0, 6).join("\n");
 }
 
-function ExecutionResultPanel({
-  executingTests,
-  testExecutionError,
-  testExecutionResult,
-  moduleName
-}) {
+function ExecutionResultPanel({ testExecutionResult }) {
 const {
   tests,
   passedTests,
@@ -691,90 +787,36 @@ const {
   passPercentage
 } = getExecutionStats(testExecutionResult);
 
-const isPassed =
-  total > 0
-    ? failed === 0
-    : Boolean(testExecutionResult?.passed || testExecutionResult?.testResult?.success);
-  const rawOutput = cleanTerminalOutput(
-    `${testExecutionResult?.output || ""}\n${testExecutionResult?.errorOutput || ""}`
-  );
   const functionResults = getFunctionWiseResults(testExecutionResult, tests);
-
-  if (executingTests) {
-    return (
-      <div className="execution-empty-card execution-loading-card">
-        <Loader2 className="spin" size={26} />
-        <div>
-          <h3>Executing tests inside sandbox...</h3>
-          <p>DevSure is running each generated Jest test case and preparing results.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (testExecutionError) {
-    return (
-      <div className="execution-empty-card execution-error-card">
-        <AlertTriangle size={26} />
-        <div>
-          <h3>Execution request failed</h3>
-          <p>{testExecutionError}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!testExecutionResult) {
-    return (
-      <div className="execution-empty-card">
-        <ClipboardList size={26} />
-        <div>
-          <h3>No execution yet</h3>
-          <p>Run generated test cases to see passed and failed tests with detailed reasons.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="execution-readable-report">
-      <div className={`execution-hero ${isPassed ? "execution-hero-passed" : "execution-hero-failed"}`}>
-        <div className="execution-hero-icon">
-          {isPassed ? <CheckCircle2 size={34} /> : <AlertTriangle size={34} />}
-        </div>
-
-        <div>
-          <span className={`execution-status-chip ${isPassed ? "passed" : "failed"}`}>
-            {isPassed ? "All tests passed" : "Some tests failed"}
-          </span>
-          <h3>{moduleName} execution report</h3>
-          <p>{testExecutionResult.message || "Sandbox execution completed."}</p>
-        </div>
-      </div>
-
       <div className="execution-summary-grid">
         <div className="execution-summary-card">
+          <span className="summary-metric-icon blue"><ClipboardList size={26} /></span>
           <span>Total Tests</span>
           <strong>{total}</strong>
           <small>Generated test cases executed</small>
         </div>
 
         <div className="execution-summary-card passed">
+          <span className="summary-metric-icon green"><CircleCheckBig size={26} /></span>
           <span>Passed</span>
           <strong>{passed}</strong>
           <small>Working as expected</small>
         </div>
 
         <div className="execution-summary-card failed">
+          <span className="summary-metric-icon red"><CircleX size={26} /></span>
           <span>Failed</span>
           <strong>{failed}</strong>
           <small>Need review</small>
         </div>
 
         <div className="execution-summary-card percentage">
-          <span>Pass Rate</span>
-          <strong>{passPercentage}%</strong>
-          <small>Sandbox score</small>
+          <span className="summary-metric-icon blue"><PieChart size={28} /></span>
+          <div><span>Pass Rate</span><strong>{passPercentage}%</strong><small>Sandbox score</small></div>
+          <div className="pass-rate-ring" style={{ "--pass-rate": `${passPercentage * 3.6}deg` }}><b>{passPercentage}%</b></div>
         </div>
       </div>
 {/* 
@@ -802,15 +844,20 @@ const isPassed =
           <div className="function-result-grid">
             {functionResults.map((item, index) => (
               <div className="function-result-card" key={`${item.functionName || "function"}-${index}`}>
-                <div>
-                  <span>Function</span>
-                  <strong>{item.functionName || `Function ${index + 1}`}</strong>
+                <div className="function-result-card-title">
+                  <Code2 size={22} />
+                  <div><strong>{item.functionName || `Function ${index + 1}`}</strong>
+                  <p>
+                    <b>{getSafeNumber(item.passed, 0)}</b> passed /{" "}
+                    <b>{getSafeNumber(item.failed, 0)}</b> failed /{" "}
+                    <b>{getSafeNumber(item.total, 0)}</b> total
+                  </p></div>
                 </div>
-                <p>
-                  <b>{getSafeNumber(item.passed, 0)}</b> passed /{" "}
-                  <b>{getSafeNumber(item.failed, 0)}</b> failed /{" "}
-                  <b>{getSafeNumber(item.total, 0)}</b> total
-                </p>
+                <div className="function-result-progress" aria-label={`${item.functionName} pass rate`}>
+                  <i className="passed" style={{ width: `${item.total ? Math.round((item.passed / item.total) * 100) : 0}%` }} />
+                  <i className="failed" style={{ width: `${item.total ? Math.round((item.failed / item.total) * 100) : 0}%` }} />
+                  <span>{item.total ? Math.round((item.passed / item.total) * 100) : 0}%</span>
+                </div>
               </div>
             ))}
           </div>
@@ -819,77 +866,87 @@ const isPassed =
 
       <div className="execution-details-grid">
         <TestCaseResultList
-          title="Failed Test Cases"
-          emptyText="No failed test cases."
-          tests={failedTests}
-          type="failed"
-        />
-
-        <TestCaseResultList
-          title="Passed Test Cases"
+          title="Passed Tests"
           emptyText="No passed test cases."
           tests={passedTests}
           type="passed"
         />
+        <TestCaseResultList
+          title="Failed Tests"
+          emptyText="No failed test cases."
+          tests={failedTests}
+          type="failed"
+        />
       </div>
 
-      {rawOutput && (
-        <details className="execution-terminal-dropdown">
-          <summary>View Raw Jest Output</summary>
-          <pre>{rawOutput}</pre>
-        </details>
-      )}
     </div>
   );
 }
 
-function TestCaseResultList({ title, tests, type, emptyText }) {
+function ExecutionLoadingPanel({ moduleName }) {
+  const stages = ["Preparing test environment...", "Executing test cases...", "Collecting results..."];
   return (
-    <section className={`test-result-column ${type}`}>
-      <div className="test-result-column-header">
-        <h4>{title}</h4>
-        <span>{tests.length}</span>
+    <section className="execution-loading-panel" aria-live="polite" aria-busy="true">
+      <div className="execution-loading-orbit"><Loader2 className="spin" size={38} /></div>
+      <span className="execution-panel-eyebrow">Sandbox execution</span>
+      <h2>Running Test Suite</h2>
+      <p>Executing generated test cases in the backend sandbox...</p>
+      <div className="execution-progress-track"><i /></div>
+      <div className="execution-stage-list">
+        {stages.map((stage, index) => <span key={stage} className={index === 1 ? "active" : ""}><i />{stage}</span>)}
+      </div>
+      <small>{moduleName} tests are running. This may take a moment.</small>
+    </section>
+  );
+}
+
+function TestCaseResultList({ title, tests, type, emptyText }) {
+  const [query, setQuery] = useState("");
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [selectedFunction, setSelectedFunction] = useState("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterMenuRef = useRef(null);
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!filterMenuRef.current?.contains(event.target)) setFilterOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [filterOpen]);
+  const functionNames = [...new Set(tests.map((test) => test.functionName).filter(Boolean))];
+  const visibleTests = tests.filter((test) =>
+    `${test.title} ${test.functionName}`.toLowerCase().includes(query.toLowerCase()) &&
+    (selectedFunction === "all" || test.functionName === selectedFunction)
+  );
+  const displayedTests = showAll || query ? visibleTests : visibleTests.slice(0, 3);
+  const testNumber = (test, index) => test.id?.match(/(?:TC-|test-)(\d+)$/i)?.[1] || index + 1;
+
+  return (
+    <section className={`execution-test-table-section ${type}`}>
+      <div className="execution-test-table-toolbar">
+        <h4>{title} ({tests.length})</h4>
+        <div className="execution-table-controls">
+          <label><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tests..." /></label>
+          <div className="execution-filter-menu" ref={filterMenuRef}><button type="button" onClick={() => setFilterOpen((value) => !value)} aria-expanded={filterOpen} aria-haspopup="menu"><SlidersHorizontal size={16} />{selectedFunction === "all" ? "Filter" : selectedFunction}<ChevronDown size={15} /></button>{filterOpen && <div className="execution-filter-options" role="menu"><button type="button" role="menuitem" onClick={() => { setSelectedFunction("all"); setFilterOpen(false); }}>All functions</button>{functionNames.map((functionName) => <button key={functionName} type="button" role="menuitem" onClick={() => { setSelectedFunction(functionName); setFilterOpen(false); }}>{functionName}</button>)}</div>}</div>
+        </div>
       </div>
 
-      {tests.length === 0 ? (
-        <p className="test-result-empty-text">{emptyText}</p>
+      {visibleTests.length === 0 ? (
+        <p className="execution-table-empty">{query ? "No matching test cases." : emptyText}</p>
       ) : (
-        <div className="test-result-list">
-          {tests.map((test, index) => (
-            <article className={`test-result-card ${type}`} key={test.id || index}>
-              <div className="test-result-card-header">
-                <span className={`test-result-badge ${type}`}>
-                  {type === "passed" ? "PASS" : "FAIL"}
-                </span>
-                <div>
-                  <h5>{test.title}</h5>
-                  <p>{test.functionName}</p>
-                </div>
-              </div>
-
-              {type === "failed" && (
-                <div className="failure-reason-box">
-                  <span>Failure Reason</span>
-                  <pre>{getFailurePreview(test)}</pre>
-                </div>
-              )}
-
-              {type === "failed" && test.failureMessage && (
-                <details className="failure-details-dropdown">
-                  <summary>View full error</summary>
-                  <pre>{test.failureMessage}</pre>
-                </details>
-              )}
-
-              {type === "passed" && (
-                <p className="passed-message">This test case passed successfully.</p>
-              )}
-
-              <small>Duration: {test.duration || 0}ms</small>
-            </article>
-          ))}
-        </div>
+        <div className="execution-table-wrap"><table className="execution-test-table"><thead><tr><th>Test Case</th><th>Description</th><th>Function</th><th>Status</th><th>Duration</th><th>Action</th></tr></thead><tbody>
+          {displayedTests.map((test, index) => <Fragment key={test.id || index}>
+            <tr className={selectedTest === test.id ? "selected" : ""}>
+              <td>TC-{testNumber(test, index)}</td><td>{test.title}</td><td>{test.functionName}</td><td><span className={`table-status ${type}`}>{type === "passed" ? <CircleCheckBig size={17} /> : <CircleX size={17} />}{type === "passed" ? "Passed" : "Failed"}</span></td><td>{test.duration || 0} ms</td>
+              <td><button type="button" className="execution-table-action" onClick={() => setSelectedTest(selectedTest === test.id ? null : test.id)}>{type === "passed" ? <Code2 size={16} /> : <List size={16} />}{selectedTest === test.id ? "Hide Details" : type === "passed" ? "View Code" : "View Details"}</button></td>
+            </tr>
+            {selectedTest === test.id && <tr className="execution-test-detail-row"><td colSpan="6"><div className={`execution-test-detail ${type}`}><strong>{type === "failed" ? "Failure Reason" : "Test Result"}</strong><pre>{type === "failed" ? getFailurePreview(test) : "This test case passed successfully in the backend sandbox."}</pre></div></td></tr>}
+          </Fragment>)}
+        </tbody></table></div>
       )}
+      {!query && visibleTests.length > 3 && <button type="button" className={`view-all-tests-button ${type}`} onClick={() => setShowAll((value) => !value)}>{showAll ? "Show fewer tests" : `View all ${type === "passed" ? "passed" : "failed"} tests (${visibleTests.length})`}<ArrowRight size={17} /></button>}
     </section>
   );
 }
@@ -904,24 +961,8 @@ function FeatureFileReviewPanel({
   onChange,
   onApprove
 }) {
-  if (creatingFeatureFile) {
-    return (
-      <section className="feature-file-panel feature-file-loading">
-        <div className="feature-file-panel-icon">
-          <Loader2 className="spin" size={26} />
-        </div>
-        <div>
-          <span className="feature-file-eyebrow">Creating a feature file</span>
-          <h2>Preparing module behavior scenarios...</h2>
-          <p>
-            DevSure is reading your user rules and module functions to create a
-            feature file before test generation starts.
-          </p>
-        </div>
-      </section>
-    );
-  }
-
+  const [expanded, setExpanded] = useState(false);
+  const [editorScrollTop, setEditorScrollTop] = useState(0);
   if (featureFileError) {
     return (
       <section className="feature-file-panel feature-file-error">
@@ -931,13 +972,13 @@ function FeatureFileReviewPanel({
         <div>
           <span className="feature-file-eyebrow">Feature file failed</span>
           <h2>Unable to create feature file</h2>
-          <p>{featureFileError}</p>
+          <ErrorReasonPanel error={featureFileError} fallbackTitle="Feature File Generation Failed" />
         </div>
       </section>
     );
   }
 
-  if (!featureFileDraft) {
+  if (!featureFileDraft && !creatingFeatureFile) {
     return (
       <section className="feature-file-panel">
         <div className="feature-file-panel-icon">
@@ -961,10 +1002,12 @@ function FeatureFileReviewPanel({
           </div>
           <div>
             <span className="feature-file-eyebrow">
-              {featureFileApproved ? "Approved feature file" : "Review feature file"}
+              {creatingFeatureFile ? "Creating feature file" : featureFileApproved ? "Approved feature file" : "Review feature file"}
             </span>
             <h2>
-              {featureFileApproved
+              {creatingFeatureFile
+                ? "Generating Module Behavior Scenarios..."
+                : featureFileApproved
                 ? "Test generation is using this approved behavior file"
                 : "Approve or edit this feature file before test generation"}
             </h2>
@@ -974,7 +1017,9 @@ function FeatureFileReviewPanel({
           </div>
         </div>
 
-        {!featureFileApproved && (
+        <ResizeControl expanded={expanded} onToggle={() => setExpanded((value) => !value)} label="Feature File Editor" />
+
+        {!featureFileApproved && !creatingFeatureFile && (
           <button
             type="button"
             className="approve-feature-button"
@@ -1006,20 +1051,35 @@ function FeatureFileReviewPanel({
       <label className="feature-file-editor">
         <span>
           <PencilLine size={15} />
-          {featureFileApproved ? "Approved feature file content" : "Editable feature file content"}
+          {creatingFeatureFile ? <>Generating feature file content<span className="waiting-dots compact" aria-label="Generating"><i>.</i><i>.</i><i>.</i></span></> : featureFileApproved ? "Approved feature file content" : "Editable feature file content"}
         </span>
-        <textarea
-          value={featureFileDraft}
-          onChange={(event) => onChange(event.target.value)}
-          readOnly={featureFileApproved || generatingTests}
-          rows={16}
-        />
+        <div className={`feature-editor-shell resizable-workspace ${expanded ? "is-expanded" : ""}`}>
+          {expanded && (
+            <button type="button" className="feature-editor-restore" onClick={() => setExpanded(false)}>
+              <Minimize2 size={16} /> Restore
+            </button>
+          )}
+          <pre className="feature-file-line-numbers" aria-hidden="true" style={{ transform: `translateY(-${editorScrollTop}px)` }}>
+            {featureFileDraft.split("\n").map((_, index) => <span key={index}>{index + 1}</span>)}
+          </pre>
+          <pre className="feature-file-syntax" aria-hidden="true" style={{ transform: `translateY(-${editorScrollTop}px)` }}>
+            {featureFileDraft.split("\n").map((line, index) => <span key={index}>{renderFeatureFileLine(line)}</span>)}
+          </pre>
+          <textarea
+            value={featureFileDraft}
+            onChange={(event) => onChange(event.target.value)}
+            onScroll={(event) => setEditorScrollTop(event.currentTarget.scrollTop)}
+            readOnly={featureFileApproved || generatingTests}
+            rows={16}
+          />
+        </div>
       </label>
     </section>
   );
 }
 
 export default function BuildResultPage({ buildResult, onBack }) {
+  const analysisStats = buildResult?.analysisStats || {};
   const [userStory, setUserStory] = useState("");
   const [testing, setTesting] = useState(false);
   const [generatingTests, setGeneratingTests] = useState(false);
@@ -1042,6 +1102,9 @@ export default function BuildResultPage({ buildResult, onBack }) {
   const [featureFilePath, setFeatureFilePath] = useState("");
   const [projectModuleReports, setProjectModuleReports] = useState([]);
   const [qualityDashboardOpen, setQualityDashboardOpen] = useState(false);
+  const [executionReportOpen, setExecutionReportOpen] = useState(false);
+  const [executionCompletedAt, setExecutionCompletedAt] = useState(null);
+  const [analysisExpanded, setAnalysisExpanded] = useState(false);
 
   const currentModule = modulePrompt?.currentModule || moduleResult?.currentModule;
   const displayedFunctions = functionTestItems.length
@@ -1080,6 +1143,8 @@ export default function BuildResultPage({ buildResult, onBack }) {
   const resetExecution = () => {
     setTestExecutionResult(null);
     setTestExecutionError(null);
+    setExecutionReportOpen(false);
+    setExecutionCompletedAt(null);
   };
 
   const resetFeatureFile = () => {
@@ -1132,7 +1197,6 @@ export default function BuildResultPage({ buildResult, onBack }) {
         moduleIndex
       });
 
-      setUserStory("");
       setModulePrompt(result);
 
       if (result.status === "USER_STORY_REQUIRED") {
@@ -1141,7 +1205,7 @@ export default function BuildResultPage({ buildResult, onBack }) {
         setIsStoryModalOpen(false);
         setModuleResult(result);
         setTestingPageOpen(true);
-        await createFeatureFileForModule(result, result.userStory || userStory);
+        await createFeatureFileForModule(result, result.userStory);
       }
     } catch (error) {
       setTestingError(error);
@@ -1206,7 +1270,7 @@ export default function BuildResultPage({ buildResult, onBack }) {
           status: "FAILED",
           message: `${item.functionName} test case generation failed`,
           testCases: [],
-          testGenerationError: error.message
+          testGenerationError: error.details || { description: error.message }
         });
       }
     }
@@ -1239,13 +1303,13 @@ export default function BuildResultPage({ buildResult, onBack }) {
         userStory: rulesText.trim(),
         currentModule: result.currentModule,
         functions: result.analyzedFunctions || [],
-        apiFlows: result.apiFlows || []
+        apiFlows: result.apiFlows || [],
+        onChunk: (content) => setFeatureFileDraft((current) => current + content)
       });
 
-      setFeatureFileDraft(data.featureFile || "");
       setFeatureFilePath(data.featureFilePath || "");
     } catch (error) {
-      setFeatureFileError(error.message || "Unable to create feature file.");
+      setFeatureFileError(error.details || { description: error.message || "Unable to create feature file." });
     } finally {
       setCreatingFeatureFile(false);
     }
@@ -1351,6 +1415,8 @@ export default function BuildResultPage({ buildResult, onBack }) {
       });
 
       setTestExecutionResult(result);
+      setExecutionCompletedAt(new Date().toISOString());
+      setExecutionReportOpen(true);
 
       setProjectModuleReports((reports) =>
         mergeModuleReports(reports, {
@@ -1379,7 +1445,21 @@ export default function BuildResultPage({ buildResult, onBack }) {
     requestModulePrompt(nextModuleIndex);
   };
 
+  const skipCurrentModule = () => {
+    const nextModuleIndex = (modulePrompt?.currentModule?.moduleIndex || 0) + 1;
+    setIsStoryModalOpen(false);
+    setUserStory("");
+    setFunctionTestItems([]);
+    resetFeatureFile();
+    requestModulePrompt(nextModuleIndex);
+  };
+
   const handleBackButton = () => {
+    if (executionReportOpen) {
+      setExecutionReportOpen(false);
+      return;
+    }
+
     if (qualityDashboardOpen) {
       setQualityDashboardOpen(false);
       return;
@@ -1392,6 +1472,33 @@ export default function BuildResultPage({ buildResult, onBack }) {
     }
 
     onBack();
+  };
+
+  const downloadExecutionReport = () => {
+    if (!testExecutionResult) return;
+
+    const stats = getExecutionStats(testExecutionResult);
+    const rows = stats.tests.map((test) =>
+      `${test.status.toUpperCase()} | ${test.functionName} | ${test.title} | ${test.duration || 0}ms${test.failureReason ? ` | ${test.failureReason}` : ""}`
+    );
+    const reportText = [
+      `${currentModule?.moduleName || "Auth"} Execution Report`,
+      "Generated tests were executed in the backend sandbox.",
+      "",
+      `Total Tests: ${stats.total}`,
+      `Passed: ${stats.passed}`,
+      `Failed: ${stats.failed}`,
+      `Pass Rate: ${stats.passPercentage}%`,
+      "",
+      "Test Results",
+      ...rows
+    ].join("\n");
+    const url = URL.createObjectURL(new Blob([reportText], { type: "text/plain" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(currentModule?.moduleName || "auth").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-execution-report.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   if (qualityDashboardOpen) {
@@ -1411,33 +1518,58 @@ export default function BuildResultPage({ buildResult, onBack }) {
     );
   }
 
+  if (executionReportOpen && testExecutionResult) {
+    const stats = getExecutionStats(testExecutionResult);
+    const isPassed = stats.total > 0 ? stats.failed === 0 : Boolean(testExecutionResult.passed || testExecutionResult.testResult?.success);
+    const completedAt = executionCompletedAt ? new Date(executionCompletedAt) : new Date();
+    const completionDate = completedAt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    const completionTime = completedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return (
+      <main className="build-result-page execution-report-page">
+        <section className="execution-report-header">
+          <div>
+            <span className={`execution-report-badge ${isPassed ? "passed" : "failed"}`}>SANDBOX RESULT</span>
+            <h1>Auth Execution Report</h1>
+            <p className="execution-completion"><CalendarDays size={15} />Execution completed on {completionDate}<i /> <Clock3 size={15} />{completionTime}<i /> Environment: <b>Sandbox</b></p>
+          </div>
+          <div className="execution-report-actions">
+            <button type="button" className="download-report-button" onClick={downloadExecutionReport}><Download size={17} />Download Report</button>
+            <button type="button" className="back-to-generation-button" onClick={handleBackButton}><ArrowLeft size={17} />Back to Test Generation</button>
+          </div>
+        </section>
+        <ExecutionResultPanel testExecutionResult={testExecutionResult} />
+      </main>
+    );
+  }
+
   return (
     <main className="build-result-page">
-      <button className="back-button" onClick={handleBackButton}>
-        <ArrowLeft size={17} />
-        {testingPageOpen ? "Back to Build Summary" : "Back to Analysis"}
-      </button>
+      <header className="build-page-topbar">
+        <div className="build-page-brand"><Code2 size={21} /><strong>DevSure Analyzer</strong></div>
+        <button className="back-button" onClick={handleBackButton}>
+          <ArrowLeft size={17} />
+          {testingPageOpen ? "Back to Build Summary" : "Back to Analysis"}
+        </button>
+      </header>
 
       {!testingPageOpen && (
         <>
       <section className="build-success-hero">
-        <div className="success-orb">
-          <CheckCircle2 size={46} />
+        <div className="build-hero-main">
+          <div className="success-orb"><CheckCircle2 size={46} /></div>
+          <div className="build-hero-copy">
+            <span className="success-badge"><Rocket size={15} /> Build Successful</span>
+            <h1>Project is ready for module testing</h1>
+            <p>Start testing to analyze your modules, define rules, and generate test cases for controller functions.</p>
+          </div>
         </div>
-
-        <div>
-          <span className="success-badge">
-            <Rocket size={15} />
-            Build Successful
-          </span>
-
-          <h1>Project is ready for module testing</h1>
-
-          <p>
-            Start testing will read mounted routes from the entry point one by one.
-            Each module asks for its own user rules before showing only its
-            controller functions.
-          </p>
+        <div className="build-hero-visual" aria-hidden="true">
+          <div className="hero-spark spark-one" />
+          <div className="hero-spark spark-two" />
+          <div className="hero-spark spark-three" />
+          <div className="hero-code-window"><div className="hero-window-dots"><i /><i /><i /></div><Code2 size={45} /><span /><span /><span /><span /></div>
+          <div className="hero-platform" />
+          <div className="hero-shield"><ShieldCheck size={43} /></div>
         </div>
       </section>
 
@@ -1467,7 +1599,18 @@ export default function BuildResultPage({ buildResult, onBack }) {
         </div>
       </section>
 
-      <section className="testing-start-card">
+      <section className="build-checks-row" aria-label="Analysis and build summary">
+        <BuildCheck icon={CheckCircle2} label="All Checks" value={analysisStats.totalFiles} detail="Completed" tone="success" />
+        <BuildCheck icon={FileCheck2} label="Passed" value={analysisStats.parsedFiles} detail={analysisStats.totalFiles ? `${Math.round((analysisStats.parsedFiles / analysisStats.totalFiles) * 100)}%` : "N/A"} tone="passed" />
+        <BuildCheck icon={X} label="Failed" value={analysisStats.failedFiles} detail={analysisStats.totalFiles ? `${Math.round(((analysisStats.failedFiles || 0) / analysisStats.totalFiles) * 100)}%` : "N/A"} tone="failed" />
+        <BuildCheck icon={AlertTriangle} label="Warnings" value={analysisStats.unsupportedFiles} detail={analysisStats.totalFiles ? `${Math.round((analysisStats.unsupportedFiles / analysisStats.totalFiles) * 100)}%` : "N/A"} tone="warning" />
+        <BuildCheck icon={Route} label="API Routes" value={analysisStats.totalApiRoutes} tone="route" />
+        <BuildCheck icon={Boxes} label="Classes" value={analysisStats.totalClasses} tone="classes" />
+        <BuildCheck icon={FunctionSquare} label="Functions" value={analysisStats.totalFunctions} tone="functions" />
+      </section>
+
+      <section className="testing-next-grid">
+      <div className="testing-start-card">
         <div className="testing-start-copy">
           <div className="testing-start-icon">
             <PlayCircle size={26} />
@@ -1515,6 +1658,16 @@ export default function BuildResultPage({ buildResult, onBack }) {
             </>
           )}
         </button>
+      </div>
+      <aside className="testing-next-card">
+        <h2>What happens next?</h2>
+        <ul>
+          <li><span className="next-step-icon"><Route size={18} /></span>Routes are discovered from the entry point</li>
+          <li><span className="next-step-icon"><Boxes size={18} /></span>Modules are analyzed individually</li>
+          <li><span className="next-step-icon"><ClipboardList size={18} /></span>Define rules for each module</li>
+          <li><span className="next-step-icon"><Sparkles size={18} /></span>AI generates test cases for controller functions</li>
+        </ul>
+      </aside>
       </section>
         </>
       )}
@@ -1526,10 +1679,18 @@ export default function BuildResultPage({ buildResult, onBack }) {
               <FunctionSquare size={30} />
             </div>
 
-            <div>
+            <div className="module-testing-hero-copy">
               <span className="success-badge">Testing Workspace</span>
-              <h1>{currentModule?.moduleName || "Module"} test generation</h1>
-              <p>DevSure is now generating Jest test cases and showing execution results on this separate testing page.</p>
+              <h1>{currentModule?.moduleName || "Module"} Test Generation</h1>
+              <p>DevSure is generating Jest test cases and will show execution results here.</p>
+            </div>
+
+            <div className="testing-hero-visual" aria-hidden="true">
+              <div className="testing-code-window">
+                <div className="testing-window-dots"><i /><i /><i /></div>
+                <span /><span /><span /><span />
+              </div>
+              <div className="testing-shield"><ShieldCheck size={36} /></div>
             </div>
           </section>
 
@@ -1552,29 +1713,20 @@ export default function BuildResultPage({ buildResult, onBack }) {
       <section className="api-flow-panel">
         <div className="panel-header compact-panel-header">
           <h2>Testing Flow</h2>
-          <p>
-            {creatingFeatureFile
-              ? "Creating a feature file from user rules before test generation..."
-              : featureFileDraft && !featureFileApproved
-              ? "Review the feature file. You can edit it, then approve it to generate test cases."
-              : generatingTests
-              ? "Generating test cases one by one using the approved feature file..."
-              : moduleResult?.message ||
-                modulePrompt?.message ||
-                "Click Start Testing to find the first mounted route module."}
-          </p>
+          <p>Follow these steps to analyze functions, define rules, and generate test cases.</p>
+        </div>
+
+        <div className="testing-flow-steps" aria-label="Testing flow steps">
+          <div className="testing-flow-step"><span className="flow-icon"><Network size={20} /></span><b>1</b><div><strong>Analyze Functions</strong><small>Discover controller functions</small></div></div>
+          <ArrowRight className="flow-arrow" size={22} />
+          <div className="testing-flow-step"><span className="flow-icon"><ClipboardList size={20} /></span><b>2</b><div><strong>Define Rules</strong><small>Add rules for each function</small></div></div>
+          <ArrowRight className="flow-arrow" size={22} />
+          <div className="testing-flow-step"><span className="flow-icon"><PlayCircle size={20} /></span><b>3</b><div><strong>Generate &amp; Execute</strong><small>Generate and run test cases</small></div></div>
         </div>
 
         <div className="api-flow-summary">
-          <div>
-            <Network size={20} />
-            <span>{currentModule?.totalApis || 0} Module APIs</span>
-          </div>
-
-          <div>
-            <Route size={20} />
-            <span>{entryFile}</span>
-          </div>
+          <div><Network size={18} /><span>{currentModule?.totalApis || 0} Module APIs</span></div>
+          <div><Route size={18} /><span>{entryFile}</span></div>
         </div>
 
         {currentModule && (
@@ -1593,18 +1745,20 @@ export default function BuildResultPage({ buildResult, onBack }) {
         )}
 
         {displayedFunctions.length > 0 && (
-          <div className="analyzed-functions-panel">
+          <div className={`analyzed-functions-panel resizable-workspace ${analysisExpanded ? "is-expanded" : ""}`}>
             <div className="analyzed-functions-title">
               <div className="analyzed-functions-title-icon">
                 <CheckCheck size={20} />
               </div>
 
               <div>
-                <span>Analyze Functions</span>
+                <span>Functions Analyzed</span>
                 <h3>{currentModule?.moduleName || "Current Module"}</h3>
+                <p className="analyzed-module-description">All controller functions have been analyzed successfully</p>
               </div>
 
               <div className="analyzed-functions-stats">
+                <Boxes size={18} />
                 <strong>{displayedFunctions.length}</strong>
                 <small>functions</small>
               </div>
@@ -1630,6 +1784,7 @@ export default function BuildResultPage({ buildResult, onBack }) {
                         <div>
                           <span className="function-eyebrow">Controller Function</span>
                           <h4>{item.functionName}</h4>
+                          <p className="function-inline-message">{item.message || "Function analyzed successfully"}</p>
                         </div>
                       </div>
 
@@ -1644,21 +1799,21 @@ export default function BuildResultPage({ buildResult, onBack }) {
                     </div>
 
                     <div className="function-message-row">
-                      <p>{item.message || "Function analyzed successfully"}</p>
-
                       {item.testGenerationError && (
-                        <p className="testcase-error-text">{item.testGenerationError}</p>
+                        <ErrorReasonPanel error={item.testGenerationError} fallbackTitle="Test Case Generation Failed" compact />
                       )}
                     </div>
 
                     {testCount > 0 && (
-                      <details className="function-tests-dropdown" open>
+                      <details className="function-tests-dropdown">
                         <summary className="function-tests-summary">
+                          <span className="generated-tests-document-icon"><FileText size={21} /></span>
                           <div>
                             <span className="summary-pill">Generated Test Cases</span>
                             <small>{item.functionName}</small>
                           </div>
 
+                          <ChevronRight className="generated-tests-chevron" size={21} />
                           <span className="summary-count">{testCount} tests</span>
                         </summary>
 
@@ -1717,12 +1872,11 @@ export default function BuildResultPage({ buildResult, onBack }) {
                                       </div>
 
                                       {testCase.jestCode && (
-                                        <details className="jest-code-dropdown">
-                                          <summary>View Jest Code</summary>
-                                          <pre>
-                                            <code>{testCase.jestCode}</code>
-                                          </pre>
-                                        </details>
+                                        <JestCodeViewer
+                                          code={testCase.jestCode}
+                                          functionName={item.functionName}
+                                          fileName={testCase.testFileName || testCase.fileName}
+                                        />
                                       )}
                                     </div>
                                   ))}
@@ -1815,26 +1969,26 @@ export default function BuildResultPage({ buildResult, onBack }) {
         )}
       </section>
 
-      <section className="build-output-panel execution-result-panel">
-        <div className="panel-header execution-panel-header">
-          <div>
-            <span className="execution-panel-eyebrow">Sandbox Result</span>
-            <h2>Test Execution Result</h2>
+      {executingTests ? (
+        <ExecutionLoadingPanel moduleName={currentModule?.moduleName || "Module"} />
+      ) : (
+        <section className="build-output-panel execution-result-panel">
+          <div className="panel-header execution-panel-header">
+            <div>
+              <span className="execution-panel-eyebrow">Sandbox Result</span>
+              <h2>Test Execution Result</h2>
+            </div>
+            <p>Run the generated test cases to view detailed pass/fail results.</p>
           </div>
-          <p>
-            {testExecutionResult
-              ? testExecutionResult.message
-              : "Run generated test cases to view readable pass/fail details here."}
-          </p>
-        </div>
-
-        <ExecutionResultPanel
-          executingTests={executingTests}
-          testExecutionError={testExecutionError}
-          testExecutionResult={testExecutionResult}
-          moduleName={currentModule?.moduleName || "Module"}
-        />
-      </section>
+          <div className={`execution-empty-card ${testExecutionError ? "execution-error-card" : ""}`}>
+            {testExecutionError ? <AlertTriangle size={26} /> : <ClipboardList size={26} />}
+            <div>
+              <h3>{testExecutionError ? "Execution request failed" : "No Test Execution Yet"}</h3>
+              <p>{testExecutionError || "Run the generated test cases to view detailed pass/fail results."}</p>
+            </div>
+          </div>
+        </section>
+      )}
         </>
       )}
 
@@ -1846,9 +2000,9 @@ export default function BuildResultPage({ buildResult, onBack }) {
               onClick={handleCancelModuleRules}
               aria-label="Close module rules popup"
               style={{
-                position: "absolute",
-                top: "24px",
-                right: "24px",
+                position: "fixed",
+                top: "20px",
+                right: "20px",
                 width: "40px",
                 height: "40px",
                 padding: 0,
@@ -1872,6 +2026,7 @@ export default function BuildResultPage({ buildResult, onBack }) {
 
             <span className="success-badge">Module Found</span>
             <h2>{modulePrompt.currentModule.moduleName} Module</h2>
+            <div className="module-rules-visual" aria-hidden="true"><div className="module-rules-code"><i /><i /><i /><i /></div><ShieldCheck size={45} /></div>
 
             {controllerFunctions.length > 0 && (
               <div className="first-endpoint-card">
@@ -1879,7 +2034,7 @@ export default function BuildResultPage({ buildResult, onBack }) {
 
                 <div className="module-function-list">
                   {controllerFunctions.map((name) => (
-                    <strong key={name}>{name}</strong>
+                    <strong key={name}><FunctionSquare size={19} /><span>{name}</span></strong>
                   ))}
                 </div>
               </div>
@@ -1914,9 +2069,25 @@ export default function BuildResultPage({ buildResult, onBack }) {
                 </>
               )}
             </button>
+            <button
+              type="button"
+              className="skip-module-button"
+              disabled={testing}
+              onClick={skipCurrentModule}
+            >
+              <ArrowRight size={17} />
+              Skip Module
+            </button>
           </section>
         </div>
       )}
     </main>
   );
+}
+
+function BuildCheck({ icon: Icon, label, value, detail, tone }) {
+  return <article className={`build-check ${tone}`}>
+    <span className="build-check-icon"><Icon size={27} /></span>
+    <div><small>{label}</small><strong>{value ?? "—"}</strong>{detail && <em>{detail}</em>}</div>
+  </article>;
 }

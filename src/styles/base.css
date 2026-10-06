@@ -5,10 +5,11 @@
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(79, 70, 229, 0.22), transparent 32%),
-    radial-gradient(circle at top right, rgba(20, 184, 166, 0.16), transparent 30%),
-    #0f172a;
-  color: #e5e7eb;
+    radial-gradient(circle at 12% 8%, rgba(43, 76, 167, 0.2), transparent 27%),
+    radial-gradient(circle at 82% 12%, rgba(89, 45, 184, 0.18), transparent 25%),
+    radial-gradient(circle at 50% 100%, rgba(29, 87, 165, 0.13), transparent 42%),
+    #071426;
+  color: #e8edf9;
   font-family:
     Inter,
     ui-sans-serif,
@@ -36,6 +37,8 @@ body {
 
 #root {
   min-height: 100vh;
+  background-image: linear-gradient(rgba(146, 169, 215, 0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(146, 169, 215, 0.018) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 img,

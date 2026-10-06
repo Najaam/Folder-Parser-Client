@@ -1,23 +1,24 @@
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 14px;
-  margin-bottom: 22px;
+  grid-template-columns: .82fr .88fr 1.08fr 1.12fr 1.05fr 1.3fr .92fr .92fr 1.12fr;
+  gap: 8px;
+  margin: 12px 0;
+  overflow: visible;
 }
 
 .stat-card {
-  background: rgba(15, 23, 42, 0.74);
+  background: rgba(12, 30, 58, 0.74);
   border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 22px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
 .stat-icon {
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
   border-radius: 14px;
@@ -34,7 +35,7 @@
 
 .stat-card h3 {
   margin: 4px 0 0;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 @media (max-width: 1180px) {
@@ -58,3 +59,7 @@
     padding: 14px;
   }
 }
+
+.stat-card:nth-child(1) .stat-icon{color:#57b7ff;background:rgba(25,106,192,.17)}.stat-card:nth-child(2) .stat-icon{color:#45e79a;background:rgba(24,137,85,.17)}.stat-card:nth-child(3) .stat-icon{color:#b0a2ff;background:rgba(88,57,171,.2)}.stat-card:nth-child(4) .stat-icon{color:#61df9a;background:rgba(21,114,76,.2)}.stat-card:nth-child(5) .stat-icon{color:#a99bff;background:rgba(68,59,183,.2)}.stat-card:nth-child(6) .stat-icon{color:#e7a5e9;background:rgba(143,49,147,.18)}.stat-card:nth-child(7) .stat-icon{color:#ffc35a;background:rgba(168,101,20,.2)}.stat-card:nth-child(8) .stat-icon{color:#e88ac4;background:rgba(160,43,118,.2)}.stat-card:nth-child(9) .stat-icon{color:#efaf5c;background:rgba(151,89,20,.2)}
+
+.stat-card{min-width:0}.stat-card p{line-height:1.15;white-space:nowrap;overflow:visible;text-overflow:clip}.stat-card:nth-child(4) p{font-size:12px}
